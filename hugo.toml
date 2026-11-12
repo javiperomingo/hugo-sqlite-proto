@@ -1,4 +1,4 @@
 # Cambia baseURL por la de tu despliegue. `hugo server` la ignora en local.
-baseURL = "https://fp-bits.github.io/hugo-sqlite-proto/"
+baseURL = "https://javiperomingo.github.io/hugo-sqlite-proto/"
 title = "Hugo + SQLite"
 defaultContentLanguage = "es"

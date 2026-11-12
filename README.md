@@ -70,6 +70,50 @@ Makefile            index · build · serve · check · clean
 4. Cambia la búsqueda para ordenar los resultados por número de coincidencias (sigue siendo una función pura).
 5. Despliega `public/` con `rsync` a tu VPS o con GitHub Pages. ¿Qué proceso corre en el servidor? (Ninguno de tuyos.)
 
+---
+
+## Solución implementada y documentación de los cambios (Javier Peromingo)
+
+### Flujo completo de datos (`tools/index.py` → SQLite → JSON → Hugo / Navegador)
+
+```
+content/**/*.md
+   │
+   ▼  tools/index.py (funciones puras: split_front_matter, parse_meta, plain, word_count)
+build/site.db  (SQLite temporal en build: tablas posts, tags y words)
+   │
+   ├──► Q_SEARCH  ──► static/search.json ──► navegador (static/search.js: fetch + filter + hits + sort)
+   ├──► Q_TAGS    ──► data/tags.json     ──► Hugo en build (layouts/index.html: hugo.Data.tags)
+   └──► Q_WORDS   ──► data/words.json    ──► Hugo en build (layouts/partials/footer.html y single.html)
+```
+
+### Detalle de los ejercicios resueltos
+
+1. **Ejercicio 1 — Post con etiqueta `sql` y recuento con `GROUP BY`:**
+   - Se ha creado `content/posts/consultas-agregadas-sql.md` con `tags: [sql, sqlite, build, static]`.
+   - Al ejecutar `make index` (o `make serve`), `tools/index.py` inserta las filas en la tabla `tags(url, tag)` y la consulta `Q_TAGS` (`SELECT tag, COUNT(*) AS total FROM tags GROUP BY tag`) actualiza automáticamente `data/tags.json`, mostrando la etiqueta `sql (1)` y actualizando los contadores de `static (4)`, `build (2)` y `sqlite (2)` en la página principal.
+
+2. **Ejercicio 2 — Por qué `hugo server -D` no encontraba el borrador y flag `--drafts`:**
+   - **Causa:** `hugo server -D` renderiza el HTML de `content/posts/borrador.md` (`draft: true`), pero el buscador en el navegador consulta `static/search.json`, que es generado por `tools/index.py`. Como `read_all()` filtraba siempre `if not page["draft"]`, el borrador nunca entraba en `build/site.db` ni en `static/search.json`.
+   - **Solución:** Se ha parametrizado `read_all(include_drafts=False)` en `tools/index.py` para aceptar `--drafts` (o `-D`) desde la línea de comandos y se ha añadido el objetivo `make serve-drafts` en el `Makefile`.
+
+3. **Ejercicio 3 — Tabla `words(url, n)` en SQLite y total de palabras en el pie:**
+   - Se ha añadido la función pura `word_count(text)` en `tools/index.py` y la tabla `words(url TEXT PRIMARY KEY REFERENCES posts(url), n INTEGER NOT NULL DEFAULT 0)` al esquema SQLite.
+   - La consulta `Q_WORDS` usa `SUM(n)`, `COUNT(*)` y `json_group_object(url, n)` para exportar `data/words.json`.
+   - En `layouts/partials/footer.html` se consume `hugo.Data.words` para mostrar en el pie el total de palabras y páginas indexadas (`306 palabras en 5 páginas`).
+
+4. **Ejercicio 4 — Ordenación de resultados por número de coincidencias (funciones puras):**
+   - En `static/search.js` se han añadido las funciones puras `countIn(s, t)` y `hits(ts)(post)` que suman cuántas veces aparecen los términos buscados en el texto normalizado (`title + tags + text`).
+   - `search(posts, query)` filtra con `matches(ts)`, enriquece cada resultado de forma inmutable (`{ ...post, hits }`) y ordena de mayor a menor número de coincidencias.
+
+5. **Ejercicio 5 — Despliegue en GitHub Pages (`public/`):**
+   - Se ha configurado `baseURL = "https://javiperomingo.github.io/hugo-sqlite-proto/"` en `hugo.toml` y publicado el contenido estático generado en `public/` mediante GitHub Pages.
+   - **¿Qué proceso nuestro corre en el servidor en producción?** **Ninguno.** Ni Python, ni SQLite, ni Hugo se ejecutan en el servidor de producción: SQLite y Hugo solo trabajan en tiempo de *build*, y el servidor web de GitHub Pages únicamente sirve ficheros estáticos pregenerados (`.html`, `.css`, `.js` y `search.json`).
+
+6. **Aportación propia:**
+   - En los resultados del buscador (`static/search.js`) se muestra una etiqueta con el número exacto de coincidencias encontradas (`N coincidencias`) y las palabras de cada artículo.
+   - En la vista individual de cada artículo (`layouts/_default/single.html`) y en el listado de la portada (`layouts/index.html`) se muestra el número de palabras de cada post precalculado por SQLite en `data/words.json`.
+
 ## Límites a propósito (KISS)
 
 `tools/index.py` entiende front matter YAML simple (`clave: valor` y `tags: [a, b]`); no TOML ni listas
