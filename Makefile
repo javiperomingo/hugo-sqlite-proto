@@ -18,10 +18,11 @@ serve-drafts:   ## Índice con borradores (--drafts) + servidor local (hugo serv
 check: index   ## Valida que los JSON generados son JSON de verdad
 	python3 -m json.tool static/search.json > /dev/null
 	python3 -m json.tool data/tags.json > /dev/null
+	python3 -m json.tool data/words.json > /dev/null
 	@echo "check: OK"
 
 clean:   ## Borra todo lo generado (public/, resources/, build/, JSON)
-	rm -rf public resources build static/search.json data/tags.json .hugo_build.lock
+	rm -rf public resources build static/search.json data/tags.json data/words.json .hugo_build.lock
 
 check-invites:   ## [profesor] Lista invitaciones de colaborador pendientes (gh auth login)
 	@gh api user/repository_invitations --jq '.[] | "\(.id)\t\(.repository.full_name)\tinvited_by=\(.invited_by.login)\t\(.created_at)"' \

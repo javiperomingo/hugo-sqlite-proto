@@ -29,6 +29,7 @@ CONTENT = Path("content")
 DB = Path("build/site.db")
 OUT_SEARCH = Path("static/search.json")
 OUT_TAGS = Path("data/tags.json")
+OUT_WORDS = Path("data/words.json")
 
 SCHEMA = """
 CREATE TABLE posts (
@@ -43,17 +44,23 @@ CREATE TABLE tags (
   tag TEXT NOT NULL,
   PRIMARY KEY (url, tag)
 );
+CREATE TABLE words (
+  url TEXT PRIMARY KEY REFERENCES posts(url),
+  n   INTEGER NOT NULL DEFAULT 0
+);
 """
 
 # SQL produce directamente el JSON (extensión json1 de SQLite).
 Q_SEARCH = """
 SELECT json_group_array(json_object(
   'url', url, 'title', title, 'date', date, 'summary', summary,
-  'tags', json(tags), 'text', body))
+  'tags', json(tags), 'words', words, 'text', body))
 FROM (
   SELECT p.*,
+         COALESCE(w.n, 0) AS words,
          (SELECT json_group_array(tag) FROM tags t WHERE t.url = p.url) AS tags
   FROM posts p
+  LEFT JOIN words w ON w.url = p.url
   ORDER BY date DESC, title
 )
 """
@@ -64,6 +71,16 @@ SELECT json_group_array(json_object('tag', tag, 'total', total))
 FROM (
   SELECT tag, COUNT(*) AS total FROM tags GROUP BY tag ORDER BY total DESC, tag
 )
+"""
+
+# Agregación: conteo de palabras por post y suma total del sitio.
+Q_WORDS = """
+SELECT json_object(
+  'total', COALESCE(SUM(n), 0),
+  'posts', COUNT(*),
+  'by_url', COALESCE(json_group_object(url, n), json('{}'))
+)
+FROM words
 """
 
 # --- funciones puras ---------------------------------------------------------
@@ -109,6 +126,10 @@ def shorten(text, n=160):
     return text if len(text) <= n else text[:n].rsplit(" ", 1)[0] + "…"
 
 
+def word_count(text):
+    return len(text.split())
+
+
 def url_of(path):
     """content/posts/x.md → /posts/x/  (como hace Hugo)."""
     parts = path.relative_to(CONTENT).with_suffix("").parts
@@ -128,6 +149,7 @@ def read_page(path):
         "summary": meta.get("description") or shorten(text),
         "tags": tags if isinstance(tags, list) else [tags],
         "draft": meta.get("draft", False) is True,
+        "words": word_count(text),
         "text": text,
     }
 
@@ -149,6 +171,8 @@ def build_db(pages):
         "INSERT INTO posts(url, title, date, summary, body)"
         " VALUES (:url, :title, :date, :summary, :text)", pages)
     con.executemany(
+        "INSERT INTO words(url, n) VALUES (:url, :words)", pages)
+    con.executemany(
         "INSERT OR IGNORE INTO tags(url, tag) VALUES (?, ?)",
         [(p["url"], t) for p in pages for t in p["tags"]])
     con.commit()
@@ -168,9 +192,10 @@ def main(argv=sys.argv[1:]):
     con = build_db(pages)
     export(con, Q_SEARCH, OUT_SEARCH)
     export(con, Q_TAGS, OUT_TAGS)
+    export(con, Q_WORDS, OUT_WORDS)
     con.close()
     modo = " (incluyendo borradores)" if include_drafts else ""
-    print(f"index: {len(pages)} páginas{modo} → {OUT_SEARCH}, {OUT_TAGS}")
+    print(f"index: {len(pages)} páginas{modo} → {OUT_SEARCH}, {OUT_TAGS}, {OUT_WORDS}")
 
 
 if __name__ == "__main__":

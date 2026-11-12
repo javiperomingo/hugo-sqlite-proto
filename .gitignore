@@ -7,3 +7,4 @@ resources/
 build/
 static/search.json
 data/tags.json
+data/words.json
