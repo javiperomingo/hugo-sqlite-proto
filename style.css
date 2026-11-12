@@ -1,0 +1,37 @@
+/* CSS3 mínimo: variables, un solo fichero, modo oscuro del sistema.
+   MDN: https://developer.mozilla.org/es/docs/Web/CSS/Using_CSS_custom_properties */
+:root {
+  --bg: #fdfdfb; --fg: #1d1d1f; --muted: #6a6a70; --accent: #0b5cad; --rule: #deded8;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #16161a; --fg: #ececf0; --muted: #9a9aa5; --accent: #6cb2ff; --rule: #2e2e36; }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto; max-width: 42rem; padding: 1rem;
+  background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 system-ui, sans-serif;
+}
+a { color: var(--accent); }
+nav { display: flex; gap: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--rule); }
+nav a { text-decoration: none; }
+h1 { line-height: 1.2; }
+code, pre { font-family: ui-monospace, monospace; font-size: .9em; }
+pre { overflow-x: auto; padding: .75rem; border: 1px solid var(--rule); border-radius: 6px; }
+input[type="search"] {
+  display: block; width: 100%; margin-top: .25rem; padding: .5rem;
+  font: inherit; color: inherit; background: transparent;
+  border: 1px solid var(--rule); border-radius: 6px;
+}
+.posts { list-style: none; padding: 0; }
+.posts li { margin: .6rem 0; }
+.meta { color: var(--muted); font-size: .9rem; }
+.tag {
+  display: inline-block; margin: 0 .25rem .25rem 0; padding: .1rem .5rem;
+  border: 1px solid var(--rule); border-radius: 999px; font-size: .9rem; text-decoration: none;
+}
+footer { margin-top: 3rem; padding-top: .5rem; border-top: 1px solid var(--rule); }
+.fork-ribbon { position: fixed; top: 0; right: 0; z-index: 10; border: 0; }
+.fork-ribbon img { width: 100px; height: 100px; }
+@media (max-width: 500px) { .fork-ribbon img { width: 70px; height: 70px; } }
