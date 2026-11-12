@@ -23,7 +23,10 @@
 <h2>Últimos posts</h2>
 <ul class="posts">
   {{ range first 5 (where site.RegularPages "Section" "posts").ByDate.Reverse }}
-  <li><a href="{{ .RelPermalink }}">{{ .Title }}</a> <span class="meta">{{ .Date.Format "2006-01-02" }}</span></li>
+  <li>
+    <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+    <span class="meta">{{ .Date.Format "2006-01-02" }}{{ with hugo.Data.words.by_url }}{{ with index . $.RelPermalink }} · {{ . }} palabras{{ end }}{{ end }}</span>
+  </li>
   {{ end }}
 </ul>
 

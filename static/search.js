@@ -47,12 +47,17 @@ const toItem = base => post => {
   a.href = base.replace(/\/$/, "") + post.url;
   a.textContent = post.title;
 
+  const badge = document.createElement("span");
+  badge.className = "tag";
+  badge.textContent = `${post.hits} ${post.hits === 1 ? "coincidencia" : "coincidencias"}`;
+
   const meta = document.createElement("span");
   meta.className = "meta";
-  meta.textContent = ` ${post.date.slice(0, 10)} — ${post.summary}`;
+  const wordsInfo = post.words ? ` · ${post.words} palabras` : "";
+  meta.textContent = ` ${post.date.slice(0, 10)}${wordsInfo} — ${post.summary} `;
 
   const li = document.createElement("li");
-  li.append(a, meta);
+  li.append(a, meta, badge);
   return li;
 };
 
