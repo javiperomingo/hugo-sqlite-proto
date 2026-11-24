@@ -21,6 +21,7 @@ Uso:
   python3 tools/migrar.py --destino ~/chyrp-datos/copia.sqlite
 """
 import argparse
+import hashlib
 import json
 import re
 import sqlite3
@@ -52,16 +53,27 @@ def fecha_chyrp(valor, por_defecto):
 
 
 def etiquetas_json(nombres):
-    """['sql', 'Árbol B'] → '{"sql":"sql","\\u00c1rbol B":"arbol-b"}'.
+    """['sql', 'Árbol B'] → '{"sql":"sql","\u00c1rbol B":"arbol-b"}'.
 
     Es el formato exacto con el que el módulo Tags guarda las etiquetas en
     post_attributes: un objeto JSON {nombre: slug}. Sin etiquetas guarda '[]'.
+    Para etiquetas numéricas (como '2026'), Chyrp Lite antepone U+FE0E a la
+    clave y usa md5(clave) como slug para evitar conversión a índice en PHP.
     """
     if not nombres:
         return "[]"
-    asociacion = {nombre: slugify(nombre) for nombre in nombres}
+    asociacion = {}
+    for nombre in nombres:
+        clave = str(nombre)
+        if re.fullmatch(r"[+-]?(?:\d+\.?\d*|\.\d+)", clave):
+            clave = "\ufe0e" + clave
+        slug = slugify(clave)
+        if not re.search(r"[^-0-9]", slug):
+            slug = hashlib.md5(clave.encode("utf-8")).hexdigest()
+        asociacion[clave] = slug
     # PHP escribe "/" como "\/" y Python no: igualamos los bytes.
     return json.dumps(asociacion, separators=(",", ":")).replace("/", "\\/")
+
 
 
 def leer_entrada(path):

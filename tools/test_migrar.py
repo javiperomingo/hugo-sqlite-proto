@@ -44,6 +44,12 @@ class TestEtiquetas(unittest.TestCase):
     def test_sin_etiquetas(self):
         self.assertEqual(etiquetas_json([]), "[]")
 
+    def test_etiqueta_numerica(self):
+        self.assertEqual(
+            etiquetas_json(["2026"]),
+            '{"\\ufe0e2026":"a3a10ebe2ba87b81b32702fce0637e74"}',
+        )
+
 
 class TestTransformar(unittest.TestCase):
     def setUp(self):
