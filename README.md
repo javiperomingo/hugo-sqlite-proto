@@ -189,3 +189,24 @@ git log --format='%h %ad %s' --date=iso | head -20
 ```
 
 "Recuerda ... KISS!" :-)
+
+---
+
+## Cambios en la rama `chyrp-lite` (Práctica SGBD P1.2)
+
+En esta rama se ha añadido la migración del blog de Hugo (P1.1) hacia Chyrp Lite con SQLite:
+
+- `tools/migrar.py`: script ETL (extraer, transformar, cargar) que lee los Markdown de `content/posts/` y los inserta de forma transaccional e idempotente en las tablas `posts` y `post_attributes` de Chyrp Lite.
+- `tools/test_migrar.py`: pruebas unitarias de las funciones puras (`make test`).
+- `Makefile`: nuevos objetivos `test` y `migrar`.
+- **Ejercicio 2 (páginas)**: añadidas `transformar_pagina`, `extraer_paginas` y `cargar_paginas` (opción `--paginas content`) para migrar `content/about.md` a la tabla `pages`, junto con sus pruebas unitarias.
+- **Ejercicio 5 (etiquetas numéricas)**: corregida `etiquetas_json` para replicar el formato real de Chyrp Lite cuando una etiqueta es numérica (como `2026`), anteponiendo `U+FE0E` a la clave y usando `md5(clave)` como slug, con su prueba unitaria correspondiente.
+
+### Uso rápido
+
+```bash
+make test
+make migrar DESTINO=$HOME/chyrp-datos/copia.sqlite SIMULACRO=1
+make migrar DESTINO=$HOME/chyrp-datos/copia.sqlite
+python3 tools/migrar.py --destino $HOME/chyrp-datos/copia.sqlite --paginas content
+```
